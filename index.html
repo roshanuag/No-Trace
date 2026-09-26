@@ -3,108 +3,642 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>No-Trace | Quantum Tether</title>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+
+    <title>No-Trace — Private File Transfer</title>
+
     <link rel="stylesheet" href="style.css">
-    
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
+
+    <!-- QR Code library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
+
 <body>
 
-    <div class="void-background"></div>
+    <!-- Background -->
+    <div class="background-glow glow-1"></div>
+    <div class="background-glow glow-2"></div>
 
-    <header class="top-nav">
-        <h1><i class="ph-fill ph-infinity"></i> No-Trace</h1>
-        <p>End-to-End Encrypted File Tunnel</p>
-    </header>
+    <!-- Navigation -->
+    <nav class="navbar">
 
-    <main class="quantum-stage" id="drop-stage">
-        
-        <div class="core-container local-core">
-            <div class="pin-badge">
-                <span>YOUR ID</span>
-                <strong id="my-pin">-- --</strong>
+        <div class="brand">
+            <div class="brand-icon">↯</div>
+
+            <div>
+                <h1>No-Trace</h1>
+                <span>PRIVATE FILE TRANSFER</span>
             </div>
-            <div class="energy-sphere">
-                <div class="sphere-glow"></div>
-            </div>
-            <div class="device-label">Local System</div>
         </div>
 
-        <div class="tether-beam hidden" id="tether-beam">
-            <div class="data-particles"></div>
-            <div class="reconnect-warning hidden" id="reconnect-warning">LINK SEVERED. RECONNECTING...</div>
+        <div class="nav-status">
+            <span class="status-dot"></span>
+            SYSTEM ONLINE
         </div>
 
-        <div class="core-container remote-core hidden" id="remote-core">
-            <div class="pin-badge target-badge">
-                <span>CONNECTED</span>
-                <strong id="target-id-display">-- --</strong>
+    </nav>
+
+
+    <!-- HOME -->
+    <main id="homePage" class="page active">
+
+        <section class="hero">
+
+            <div class="hero-text">
+
+                <div class="eyebrow">
+                    <span>⚡</span>
+                    PEER-TO-PEER FILE TRANSFER
+                </div>
+
+                <h2>
+                    Send files.
+                    <span>Leave no trace.</span>
+                </h2>
+
+                <p>
+                    Transfer files directly between devices without
+                    cloud storage, accounts or unnecessary uploads.
+                </p>
+
+                <div class="feature-row">
+
+                    <div class="feature">
+                        <span>🔒</span>
+                        <div>
+                            <strong>Encrypted</strong>
+                            <small>Private connection</small>
+                        </div>
+                    </div>
+
+                    <div class="feature">
+                        <span>⚡</span>
+                        <div>
+                            <strong>Direct</strong>
+                            <small>Peer-to-peer transfer</small>
+                        </div>
+                    </div>
+
+                    <div class="feature">
+                        <span>🗑</span>
+                        <div>
+                            <strong>Temporary</strong>
+                            <small>Destroy when done</small>
+                        </div>
+                    </div>
+
+                </div>
+
             </div>
-            <div class="energy-sphere target-sphere">
-                <div class="sphere-glow"></div>
+
+
+            <!-- HOME ACTIONS -->
+            <div class="action-area">
+
+                <div class="action-card" id="sendCard">
+
+                    <div class="action-icon send-icon">
+                        ↑
+                    </div>
+
+                    <div>
+                        <h3>Send File</h3>
+
+                        <p>
+                            Create a temporary room and
+                            send files directly to another device.
+                        </p>
+                    </div>
+
+                    <button class="action-button">
+                        Start Sending →
+                    </button>
+
+                </div>
+
+
+                <div class="action-card" id="receiveCard">
+
+                    <div class="action-icon receive-icon">
+                        ↓
+                    </div>
+
+                    <div>
+                        <h3>Receive File</h3>
+
+                        <p>
+                            Connect to another device using
+                            a room ID or QR code.
+                        </p>
+                    </div>
+
+                    <button class="action-button">
+                        Receive Files →
+                    </button>
+
+                </div>
+
             </div>
-            <div class="device-label">Remote Peer</div>
+
+        </section>
+
+
+        <div class="demo-badge">
+            <span>●</span>
+            DEMO MODE — WebRTC transport ready to integrate
         </div>
 
     </main>
 
-    <div class="command-deck">
-        
-        <div class="control-panel" id="connect-panel">
-            <h3>Establish Link</h3>
-            <div class="input-row">
-                <div class="input-wrapper">
-                    <i class="ph ph-hash"></i>
-                    <input type="text" id="target-pin" placeholder="Enter target ID to tether..." autocomplete="off">
+
+    <!-- SEND PAGE -->
+    <main id="sendPage" class="page">
+
+        <div class="transfer-container">
+
+            <button class="back-button" onclick="showPage('homePage')">
+                ← Back
+            </button>
+
+
+            <div class="transfer-header">
+
+                <div>
+                    <div class="eyebrow">
+                        SEND FILE
+                    </div>
+
+                    <h2>Create a secure transfer room</h2>
+
+                    <p>
+                        Share your room ID or QR code with the receiver.
+                    </p>
                 </div>
-                <button id="connect-btn" class="btn-tether">Engage Link <i class="ph-bold ph-arrow-right"></i></button>
-            </div>
-            
-            <!-- Feature: Auto-Sever Toggle -->
-            <div class="toggle-row">
-                <label class="switch">
-                    <input type="checkbox" id="auto-sever-toggle">
-                    <span class="slider round"></span>
-                </label>
-                <div class="toggle-text">
-                    <strong>Auto-Sever (Burn After Reading)</strong>
-                    <span>Destroy connection immediately after transfer completes.</span>
+
+                <div class="connection-state idle" id="connectionState">
+                    <span></span>
+                    READY
                 </div>
+
             </div>
+
+
+            <!-- CONNECTION VISUALIZATION -->
+            <div class="connection-panel">
+
+                <div class="device">
+
+                    <div class="device-orb local-orb">
+                        <span>💻</span>
+                    </div>
+
+                    <strong>YOUR DEVICE</strong>
+                    <small id="senderDevice">LOCAL SYSTEM</small>
+
+                </div>
+
+
+                <div class="connection-line">
+
+                    <div class="line-glow"></div>
+
+                    <div class="data-packets">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+
+                </div>
+
+
+                <div class="device">
+
+                    <div class="device-orb remote-orb">
+                        <span>📱</span>
+                    </div>
+
+                    <strong>RECEIVER</strong>
+                    <small id="receiverDevice">WAITING...</small>
+
+                </div>
+
+            </div>
+
+
+            <!-- ROOM -->
+            <div class="room-card">
+
+                <div class="room-info">
+
+                    <span class="label">YOUR ROOM ID</span>
+
+                    <div class="room-id">
+                        <strong id="roomId">------</strong>
+
+                        <button onclick="copyRoomId()" title="Copy">
+                            ⧉
+                        </button>
+                    </div>
+
+                    <span class="room-expiry">
+                        Room expires in <strong id="expiryTimer">10:00</strong>
+                    </span>
+
+                </div>
+
+
+                <div class="qr-container">
+
+                    <div id="qrcode"></div>
+
+                    <small>Scan to connect</small>
+
+                </div>
+
+            </div>
+
+
+            <!-- FILE DROP -->
+            <div class="file-section">
+
+                <div
+                    class="drop-zone"
+                    id="dropZone"
+                >
+
+                    <div class="upload-icon">
+                        ↑
+                    </div>
+
+                    <h3>Drop files here</h3>
+
+                    <p>
+                        or click to browse from your device
+                    </p>
+
+                    <button
+                        class="browse-button"
+                        onclick="document.getElementById('fileInput').click()"
+                    >
+                        Browse Files
+                    </button>
+
+                    <input
+                        type="file"
+                        id="fileInput"
+                        multiple
+                        hidden
+                    >
+
+                </div>
+
+
+                <!-- FILE LIST -->
+                <div
+                    id="fileList"
+                    class="file-list hidden"
+                ></div>
+
+
+                <!-- SEND BUTTON -->
+                <button
+                    id="sendButton"
+                    class="primary-button hidden"
+                >
+                    ↑ Send Files
+                </button>
+
+            </div>
+
+
+            <!-- OPTIONS -->
+
+            <div class="options-card">
+
+                <div class="option">
+
+                    <div>
+                        <strong>Destroy room after transfer</strong>
+                        <small>
+                            Automatically close the room when transfer finishes.
+                        </small>
+                    </div>
+
+                    <label class="switch">
+                        <input
+                            type="checkbox"
+                            id="destroyAfter"
+                            checked
+                        >
+                        <span></span>
+                    </label>
+
+                </div>
+
+
+                <div class="option">
+
+                    <div>
+                        <strong>Require receiver approval</strong>
+                        <small>
+                            Receiver must accept before files are sent.
+                        </small>
+                    </div>
+
+                    <label class="switch">
+                        <input
+                            type="checkbox"
+                            id="requireApproval"
+                            checked
+                        >
+                        <span></span>
+                    </label>
+
+                </div>
+
+            </div>
+
         </div>
 
-        <div class="control-panel hidden" id="transfer-panel">
-            <div class="transfer-header">
-                <h3><i class="ph-fill ph-link"></i> Link Established</h3>
-                <button id="disconnect-btn" class="btn-sever">Sever Link</button>
-            </div>
-            
-            <div class="action-row">
-                <button class="btn-browse" onclick="document.getElementById('file-input').click()">
-                    <i class="ph-bold ph-magnifying-glass"></i> Browse Files
-                </button>
-                <input type="file" id="file-input" multiple style="display: none;">
-                <p class="drop-hint">Drag and drop multiple files anywhere on the screen.</p>
+    </main>
+
+
+    <!-- RECEIVE PAGE -->
+    <main id="receivePage" class="page">
+
+        <div class="receive-container">
+
+            <button class="back-button" onclick="showPage('homePage')">
+                ← Back
+            </button>
+
+            <div class="receive-header">
+
+                <div class="eyebrow">
+                    RECEIVE FILE
+                </div>
+
+                <h2>Connect to a device</h2>
+
+                <p>
+                    Enter the sender's room ID or scan their QR code.
+                </p>
+
             </div>
 
-            <div class="progress-track hidden" id="progress-wrapper">
-                <div class="progress-meta">
-                    <span id="transfer-status">Encrypting payload...</span>
-                    <!-- Feature: Queue Tracker -->
-                    <span id="queue-status" class="queue-status">File 1 of 1</span>
-                    <span id="transfer-percent">0%</span>
+
+            <div class="receive-card">
+
+                <div class="receive-icon-large">
+                    ↓
                 </div>
-                <progress id="progress-bar" value="0" max="100"></progress>
+
+                <h3>Enter Room ID</h3>
+
+                <div class="room-input">
+
+                    <input
+                        id="receiverRoomInput"
+                        type="text"
+                        maxlength="8"
+                        placeholder="e.g. S2RSI8XK"
+                    >
+
+                    <button onclick="connectReceiver()">
+                        Connect
+                    </button>
+
+                </div>
+
+                <div class="or">
+                    <span>OR</span>
+                </div>
+
+                <button
+                    class="scan-button"
+                    onclick="simulateScan()"
+                >
+                    ▣ Scan QR Code
+                </button>
+
+                <p
+                    id="receiveStatus"
+                    class="receive-status"
+                >
+                    Waiting for connection...
+                </p>
+
             </div>
+
+        </div>
+
+    </main>
+
+
+    <!-- TRANSFER PAGE -->
+    <main id="transferPage" class="page">
+
+        <div class="transfer-container">
+
+            <div class="transfer-top">
+
+                <div>
+
+                    <div class="eyebrow">
+                        SECURE CHANNEL
+                    </div>
+
+                    <h2>Transferring files</h2>
+
+                </div>
+
+                <div class="secure-badge">
+                    🔒 ENCRYPTED
+                </div>
+
+            </div>
+
+
+            <div class="connected-devices">
+
+                <div class="connected-device">
+                    <div>💻</div>
+                    <strong>Your Laptop</strong>
+                </div>
+
+                <div class="active-connection">
+                    <div class="pulse"></div>
+                    DIRECT
+                </div>
+
+                <div class="connected-device">
+                    <div>📱</div>
+                    <strong>Receiver</strong>
+                </div>
+
+            </div>
+
+
+            <!-- TRANSFER PROGRESS -->
+            <div class="progress-card">
+
+                <div class="progress-file">
+
+                    <div class="file-type-icon">
+                        📦
+                    </div>
+
+                    <div class="file-details">
+
+                        <strong id="transferFileName">
+                            project.zip
+                        </strong>
+
+                        <small id="transferFileSize">
+                            0 MB
+                        </small>
+
+                    </div>
+
+                    <div class="transfer-speed">
+                        <strong id="transferSpeed">
+                            0 MB/s
+                        </strong>
+
+                        <small>TRANSFER SPEED</small>
+                    </div>
+
+                </div>
+
+
+                <div class="progress-track">
+
+                    <div
+                        class="progress-bar"
+                        id="progressBar"
+                    ></div>
+
+                </div>
+
+
+                <div class="progress-stats">
+
+                    <span id="progressText">
+                        0%
+                    </span>
+
+                    <span id="progressAmount">
+                        0 MB / 0 MB
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <!-- QUEUE -->
+            <div class="queue-card">
+
+                <h3>Transfer Queue</h3>
+
+                <div id="transferQueue"></div>
+
+            </div>
+
+
+            <div
+                id="transferComplete"
+                class="complete-card hidden"
+            >
+
+                <div class="complete-icon">
+                    ✓
+                </div>
+
+                <h3>Transfer complete</h3>
+
+                <p>
+                    Your files were successfully transferred.
+                </p>
+
+                <button
+                    class="primary-button"
+                    onclick="destroyRoom()"
+                >
+                    Destroy Connection
+                </button>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <!-- APPROVAL MODAL -->
+    <div
+        id="approvalModal"
+        class="modal hidden"
+    >
+
+        <div class="modal-card">
+
+            <div class="modal-icon">
+                ↓
+            </div>
+
+            <h2>Incoming File</h2>
+
+            <p>
+                Another device wants to send you files.
+            </p>
+
+            <div class="incoming-file">
+
+                <span>📦</span>
+
+                <div>
+                    <strong id="incomingFileName">
+                        project.zip
+                    </strong>
+
+                    <small id="incomingFileSize">
+                        245 MB
+                    </small>
+                </div>
+
+            </div>
+
+            <div class="modal-actions">
+
+                <button
+                    class="reject-button"
+                    onclick="rejectTransfer()"
+                >
+                    Reject
+                </button>
+
+                <button
+                    class="accept-button"
+                    onclick="acceptTransfer()"
+                >
+                    Accept
+                </button>
+
+            </div>
+
         </div>
 
     </div>
 
+
+    <!-- TOAST -->
+    <div id="toast" class="toast">
+        <span>✓</span>
+        <p>Copied!</p>
+    </div>
+
+
     <script src="app.js"></script>
+
 </body>
-</html>ṭ
+</html>
