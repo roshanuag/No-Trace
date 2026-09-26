@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>No-Trace | Quantum Tether</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+    <div class="void-background"></div>
+
+    <header class="top-nav">
+        <h1><i class="ph-fill ph-infinity"></i> No-Trace</h1>
+        <p>End-to-End Encrypted File Tunnel</p>
+    </header>
+
+    <main class="quantum-stage" id="drop-stage">
+        
+        <div class="core-container local-core">
+            <div class="pin-badge">
+                <span>YOUR ID</span>
+                <strong id="my-pin">-- --</strong>
+            </div>
+            <div class="energy-sphere">
+                <div class="sphere-glow"></div>
+            </div>
+            <div class="device-label">Local System</div>
+        </div>
+
+        <div class="tether-beam hidden" id="tether-beam">
+            <div class="data-particles"></div>
+            <div class="reconnect-warning hidden" id="reconnect-warning">LINK SEVERED. RECONNECTING...</div>
+        </div>
+
+        <div class="core-container remote-core hidden" id="remote-core">
+            <div class="pin-badge target-badge">
+                <span>CONNECTED</span>
+                <strong id="target-id-display">-- --</strong>
+            </div>
+            <div class="energy-sphere target-sphere">
+                <div class="sphere-glow"></div>
+            </div>
+            <div class="device-label">Remote Peer</div>
+        </div>
+
+    </main>
+
+    <div class="command-deck">
+        
+        <div class="control-panel" id="connect-panel">
+            <h3>Establish Link</h3>
+            <div class="input-row">
+                <div class="input-wrapper">
+                    <i class="ph ph-hash"></i>
+                    <input type="text" id="target-pin" placeholder="Enter target ID to tether..." autocomplete="off">
+                </div>
+                <button id="connect-btn" class="btn-tether">Engage Link <i class="ph-bold ph-arrow-right"></i></button>
+            </div>
+            
+            <!-- Feature: Auto-Sever Toggle -->
+            <div class="toggle-row">
+                <label class="switch">
+                    <input type="checkbox" id="auto-sever-toggle">
+                    <span class="slider round"></span>
+                </label>
+                <div class="toggle-text">
+                    <strong>Auto-Sever (Burn After Reading)</strong>
+                    <span>Destroy connection immediately after transfer completes.</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="control-panel hidden" id="transfer-panel">
+            <div class="transfer-header">
+                <h3><i class="ph-fill ph-link"></i> Link Established</h3>
+                <button id="disconnect-btn" class="btn-sever">Sever Link</button>
+            </div>
+            
+            <div class="action-row">
+                <button class="btn-browse" onclick="document.getElementById('file-input').click()">
+                    <i class="ph-bold ph-magnifying-glass"></i> Browse Files
+                </button>
+                <input type="file" id="file-input" multiple style="display: none;">
+                <p class="drop-hint">Drag and drop multiple files anywhere on the screen.</p>
+            </div>
+
+            <div class="progress-track hidden" id="progress-wrapper">
+                <div class="progress-meta">
+                    <span id="transfer-status">Encrypting payload...</span>
+                    <!-- Feature: Queue Tracker -->
+                    <span id="queue-status" class="queue-status">File 1 of 1</span>
+                    <span id="transfer-percent">0%</span>
+                </div>
+                <progress id="progress-bar" value="0" max="100"></progress>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>ṭ
