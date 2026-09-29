@@ -99,16 +99,31 @@ function generateRoomId() {
 }
 
 
-function initializeSender() {
 
+function initializeSender() {
     state.roomId = generateRoomId();
 
     document.getElementById("roomId").textContent =
         state.roomId;
 
     createQRCode();
-
     startRoomTimer();
+
+    if (
+        signalingSocket &&
+        signalingSocket.readyState === WebSocket.OPEN
+    ) {
+        signalingSocket.send(JSON.stringify({
+            type: "create-room",
+            roomId: state.roomId
+        }));
+
+        console.log("Creating room:", state.roomId);
+        showToast("Room created: " + state.roomId);
+    } else {
+        showToast("Signaling server is not connected");
+        console.error("Cannot create room: WebSocket is not open");
+    }
 }
 
 
@@ -984,73 +999,35 @@ function destroyRoom() {
    RECEIVE
 ========================= */
 
-function connectReceiver() {
 
-    const input =
-        document.getElementById(
-            "receiverRoomInput"
-        );
+async function connectReceiver() {
+    const input = document.getElementById("receiverRoomInput");
+    const room = input.value.trim().toUpperCase();
+    const status = document.getElementById("receiveStatus");
 
-
-    const room =
-        input.value
-            .trim()
-            .toUpperCase();
-
-
-    if (room.length < 6) {
-
-        showToast(
-            "Enter a valid Room ID"
-        );
-
+    if (room.length !== 8) {
+        showToast("Enter the 8-character Room ID");
         return;
     }
 
+    if (
+        !signalingSocket ||
+        signalingSocket.readyState !== WebSocket.OPEN
+    ) {
+        status.textContent = "Connecting to signaling server...";
+        showToast("Signaling server is not connected");
+        return;
+    }
 
-    const status =
-        document.getElementById(
-            "receiveStatus"
-        );
+    status.textContent = "Joining room...";
+    status.style.color = "#55b5ff";
 
+    signalingSocket.send(JSON.stringify({
+        type: "join-room",
+        roomId: room
+    }));
 
-    status.textContent =
-        "Connecting to sender...";
-
-
-    status.style.color =
-        "#55b5ff";
-
-
-    /*
-        DEMO CONNECTION
-
-        Real app:
-
-        1. Connect to signaling server
-        2. Join room
-        3. Exchange WebRTC SDP
-        4. Exchange ICE candidates
-        5. Establish DataChannel
-    */
-
-
-    setTimeout(() => {
-
-        status.textContent =
-            "✓ Connected to sender";
-
-        status.style.color =
-            "#43e68b";
-
-
-        setTimeout(() => {
-
-            showPage("transferPage");
-
-        }, 800);
-
-    }, 1500);
+    console.log("Joining room:", room);
 }
 
 
@@ -1246,6 +1223,7 @@ async function createPeerConnection() {
 
 
     return peerConnection;
+*/
 // ==========================================
 // No-Trace WebSocket Signaling
 // ==========================================
@@ -1282,15 +1260,17 @@ function connectToSignalingServer() {
             return;
         }
 
-        if (data.type === "peer-joined") {
+        
+        if (data.type === "joined-room") {
+            console.log("Successfully joined room:", data.roomId);
 
-            console.log(
-                "Receiver joined!"
-            );
+            const status = document.getElementById("receiveStatus");
+            if (status) {
+                status.textContent = "Room found. Establishing peer connection...";
+                status.style.color = "#55b5ff";
+        }
 
-            await createOffer();
-
-            return;
+        return;
         }
 
         if (data.type === "answer") {
