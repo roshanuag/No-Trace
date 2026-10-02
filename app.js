@@ -581,112 +581,97 @@ setTimeout(() => {
 }, 1000);
 
 
+
 /* =========================
-   BEGIN TRANSFER
+   TRANSFER REQUEST / APPROVAL
 ========================= */
+
+let pendingIncomingRequest = null;
 
 function beginTransfer() {
-
-    if (state.files.length === 0) {
-
-        showToast(
-            "Select at least one file"
-        );
-
+    if (!state.files || state.files.length === 0) {
+        showToast("Select at least one file");
         return;
     }
 
-
-    /*
-        DEMO:
-
-        Pretend the receiver connected.
-
-        In the real app this should only happen
-        after WebRTC connection is established.
-    */
-
-    if (!state.connected) {
-
-        simulateConnection();
-
-        setTimeout(() => {
-
-            if (state.requireApproval) {
-
-                showApprovalModal();
-
-            } else {
-
-                startTransfer();
-
-            }
-
-        }, 900);
-
+    if (!dataChannel || dataChannel.readyState !== "open") {
+        showToast("Connect to the receiver first");
         return;
     }
 
-
-    if (state.requireApproval) {
-
-        showApprovalModal();
-
-    } else {
-
-        startTransfer();
-
+    if (state.transferRunning) {
+        showToast("A transfer is already in progress");
+        return;
     }
+
+    // Ask the RECEIVER for permission.
+    // Do not show the approval modal on the sender.
+    dataChannel.send(JSON.stringify({
+        type: "transfer-request",
+        files: state.files.map(file => ({
+            name: file.name,
+            size: file.size,
+            mimeType: file.type || "application/octet-stream"
+        }))
+    }));
+
+    showToast("Transfer request sent to receiver");
 }
 
+function showApprovalModal(request) {
+    pendingIncomingRequest = request;
 
-/* =========================
-   APPROVAL MODAL
-========================= */
+    const files = request.files || [];
+    const firstFile = files[0];
 
-function showApprovalModal() {
+    document.getElementById("incomingFileName").textContent =
+        files.length > 1
+            ? `${firstFile.name} and ${files.length - 1} more file(s)`
+            : firstFile.name;
 
-    const file =
-        state.files[0];
+    document.getElementById("incomingFileSize").textContent =
+        files.length > 1
+            ? `${files.length} files · ${formatBytes(
+                files.reduce((total, file) => total + file.size, 0)
+            )}`
+            : formatBytes(firstFile.size);
 
-    document.getElementById(
-        "incomingFileName"
-    ).textContent =
-        file.name;
-
-    document.getElementById(
-        "incomingFileSize"
-    ).textContent =
-        formatBytes(file.size);
-
-
-    document
-        .getElementById("approvalModal")
-        .classList.remove("hidden");
+    document.getElementById("approvalModal").classList.remove("hidden");
 }
-
 
 function rejectTransfer() {
+    document.getElementById("approvalModal").classList.add("hidden");
 
-    document
-        .getElementById("approvalModal")
-        .classList.add("hidden");
+    if (dataChannel && dataChannel.readyState === "open") {
+        dataChannel.send(JSON.stringify({
+            type: "transfer-reject"
+        }));
+    }
 
-
-    showToast(
-        "Transfer rejected"
-    );
+    pendingIncomingRequest = null;
+    showToast("Transfer declined");
 }
 
-
 function acceptTransfer() {
+    if (!pendingIncomingRequest) {
+        showToast("No pending transfer request");
+        return;
+    }
 
-    document
-        .getElementById("approvalModal")
-        .classList.add("hidden");
+    document.getElementById("approvalModal").classList.add("hidden");
 
+    if (!dataChannel || dataChannel.readyState !== "open") {
+        pendingIncomingRequest = null;
+        showToast("Sender disconnected");
+        return;
+    }
 
-    startTransfer();
+    dataChannel.send(JSON.stringify({
+        type: "transfer-accept"
+    }));
+
+    pendingIncomingRequest = null;
+    showToast("Transfer accepted");
 }
 
 
@@ -694,175 +679,115 @@ function acceptTransfer() {
    START TRANSFER
 ========================= */
 
+
 function startTransfer() {
+    if (state.files.length === 0) return;
 
-    if (state.files.length === 0)
+    if (!dataChannel || dataChannel.readyState !== "open") {
+        showToast("Data channel is not connected");
         return;
+    }
 
+    const file = state.files[0];
 
     state.transferRunning = true;
-
     state.transferProgress = 0;
+    state.currentFile = file;
 
+    document.getElementById("transferFileName").textContent = file.name;
+    document.getElementById("transferFileSize").textContent = formatBytes(file.size);
 
-    const firstFile =
-        state.files[0];
-
-    state.currentFile =
-        firstFile;
-
-
-    document.getElementById(
-        "transferFileName"
-    ).textContent =
-        firstFile.name;
-
-
-    document.getElementById(
-        "transferFileSize"
-    ).textContent =
-        formatBytes(firstFile.size);
-
-
-    showPage(
-        "transferPage"
-    );
-
-
+    showPage("transferPage");
     renderTransferQueue();
 
-
-    /*
-        DEMO TRANSFER
-
-        This simulates the UI.
-
-        Real implementation:
-
-        File
-          ↓
-        ArrayBuffer / chunks
-          ↓
-        WebRTC DataChannel
-          ↓
-        Receiver
-    */
-
-    runDemoTransfer();
+    sendFile(file).catch((error) => {
+        console.error("File transfer failed:", error);
+        state.transferRunning = false;
+        showToast("Transfer failed: " + error.message);
+    });
 }
 
+async function sendFile(file) {
+    const channel = dataChannel;
+    const chunkSize = 64 * 1024;
 
-/* =========================
-   DEMO TRANSFER
-========================= */
+    const progressBar = document.getElementById("progressBar");
+    const progressText = document.getElementById("progressText");
+    const progressAmount = document.getElementById("progressAmount");
+    const speedElement = document.getElementById("transferSpeed");
 
-function runDemoTransfer() {
+    let sentBytes = 0;
+    const startTime = Date.now();
 
-    const file =
-        state.currentFile;
+    // Tell the receiver what file is coming.
+    channel.send(JSON.stringify({
+        type: "file-meta",
+        name: file.name,
+        size: file.size,
+        mimeType: file.type || "application/octet-stream"
+    }));
 
+    for (let offset = 0; offset < file.size; offset += chunkSize) {
+        if (channel.readyState !== "open") {
+            throw new Error("Connection closed during transfer");
+        }
 
-    let progress = 0;
-
-    const totalMB =
-        file.size /
-        (1024 * 1024);
-
-
-    const progressBar =
-        document.getElementById(
-            "progressBar"
-        );
-
-
-    const progressText =
-        document.getElementById(
-            "progressText"
-        );
-
-
-    const progressAmount =
-        document.getElementById(
-            "progressAmount"
-        );
-
-
-    const speedElement =
-        document.getElementById(
-            "transferSpeed"
-        );
-
-
-    const interval =
-        setInterval(() => {
-
-            /*
-                Simulated speed.
-                Real app should calculate actual
-                WebRTC throughput.
-            */
-
-            const speed =
-                25 +
-                Math.random() * 55;
-
-
-            progress +=
-                Math.random() * 4;
-
-
-            if (progress >= 100) {
-
-                progress = 100;
-
-                clearInterval(interval);
-
-                speedElement.textContent =
-                    "DONE";
-
-                progressBar.style.width =
-                    "100%";
-
-                progressText.textContent =
-                    "100%";
-
-                progressAmount.textContent =
-                    `${formatBytes(file.size)} / ${formatBytes(file.size)}`;
-
-
-                setTimeout(
-                    transferFinished,
-                    600
-                );
-
-                return;
+        // Avoid building up too much buffered data.
+        while (channel.bufferedAmount > 4 * 1024 * 1024) {
+            if (channel.readyState !== "open") {
+                throw new Error("Connection closed during transfer");
             }
 
+            await new Promise(resolve => setTimeout(resolve, 20));
+        }
 
-            progressBar.style.width =
-                `${progress}%`;
+        const chunk = await file.slice(
+            offset,
+            Math.min(offset + chunkSize, file.size)
+        ).arrayBuffer();
 
+        channel.send(chunk);
+        sentBytes += chunk.byteLength;
 
-            progressText.textContent =
-                `${Math.floor(progress)}%`;
+        const progress = file.size === 0
+            ? 100
+            : (sentBytes / file.size) * 100;
 
+        state.transferProgress = progress;
 
-            const transferredMB =
-                totalMB *
-                (progress / 100);
+        progressBar.style.width = `${progress}%`;
+        progressText.textContent = `${Math.floor(progress)}%`;
+        progressAmount.textContent =
+            `${formatBytes(sentBytes)} / ${formatBytes(file.size)}`;
 
+        const elapsedSeconds = Math.max(
+            (Date.now() - startTime) / 1000,
+            0.001
+        );
 
-            progressAmount.textContent =
-                `${transferredMB.toFixed(1)} MB / ${totalMB.toFixed(1)} MB`;
+        const speedMBps = sentBytes / elapsedSeconds / (1024 * 1024);
+        speedElement.textContent = `${speedMBps.toFixed(2)} MB/s`;
+    }
 
+    // Wait for locally buffered data to be sent.
+    while (channel.bufferedAmount > 0) {
+        if (channel.readyState !== "open") {
+            throw new Error("Connection closed before sending completed");
+        }
+        await new Promise(resolve => setTimeout(resolve, 20));
+    }
 
-            speedElement.textContent =
-                `${speed.toFixed(1)} MB/s`;
+    progressBar.style.width = "100%";
+    progressText.textContent = "100%";
+    progressAmount.textContent =
+        `${formatBytes(file.size)} / ${formatBytes(file.size)}`;
+    speedElement.textContent = "SENT";
 
+    state.transferRunning = false;
+    showToast("File sent successfully");
 
-        }, 180);
+    setTimeout(transferFinished, 600);
 }
-
 
 /* =========================
    TRANSFER QUEUE
@@ -1260,7 +1185,16 @@ function connectToSignalingServer() {
             return;
         }
 
+        if (data.type === "peer-joined") {
+            console.log("Receiver joined! Creating WebRTC offer...");
+
+            await createOffer();
+
+            return;
         
+        }
+
+
         if (data.type === "joined-room") {
             console.log("Successfully joined room:", data.roomId);
 
@@ -1363,6 +1297,120 @@ connectToSignalingServer();
 
 let peerConnection = null;
 let dataChannel = null;
+let incomingTransfer = null;
+
+
+
+function finishIncomingTransfer() {
+    if (!incomingTransfer) return;
+
+    const transfer = incomingTransfer;
+
+    const blob = new Blob(transfer.chunks, {
+        type: transfer.mimeType
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = transfer.name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+
+    console.log("✅ File received:", transfer.name);
+    showToast("File received: " + transfer.name);
+
+    incomingTransfer = null;
+}
+
+function handleIncomingData(event) {
+    // Text messages contain file metadata.
+    if (typeof event.data === "string") {
+        let message;
+
+        try {
+            message = JSON.parse(event.data);
+        } catch (error) {
+            console.error("Invalid transfer message:", error);
+            return;
+        }
+        
+
+        
+    if (message.type === "transfer-request") {
+        if (!Array.isArray(message.files) || message.files.length === 0) {
+            console.error("Invalid transfer request");
+            return;
+        }
+
+        console.log("Incoming transfer request:", message.files);
+        showApprovalModal(message);
+        return;
+    }
+
+    if (message.type === "transfer-accept" ||
+        message.type === "transfer-reject") {
+        return;
+    }
+
+    // KEEP YOUR EXISTING CODE BELOW
+    if (message.type === "file-meta") {
+        incomingTransfer = {
+            name: message.name,
+            size: message.size,
+            mimeType: message.mimeType || "application/octet-stream",
+            chunks: [],
+            receivedBytes: 0
+    };
+
+    console.log(
+        "📥 Receiving file:",
+        message.name,
+        formatBytes(message.size)
+    );
+
+    if (message.size === 0) {
+        finishIncomingTransfer();
+    }
+}
+
+return;
+    }
+
+    // Binary messages contain file chunks.
+    if (!incomingTransfer) {
+        console.warn("Received file data without metadata");
+        return;
+    }
+
+    let chunk = event.data;
+
+    if (chunk instanceof Blob) {
+        chunk.arrayBuffer().then(buffer => {
+            if (!incomingTransfer) return;
+            incomingTransfer.chunks.push(buffer);
+            incomingTransfer.receivedBytes += buffer.byteLength;
+
+            if (incomingTransfer.receivedBytes >= incomingTransfer.size) {
+                finishIncomingTransfer();
+            }
+        });
+        return;
+    }
+
+    if (chunk instanceof ArrayBuffer) {
+        incomingTransfer.chunks.push(chunk);
+        incomingTransfer.receivedBytes += chunk.byteLength;
+
+        if (incomingTransfer.receivedBytes >= incomingTransfer.size) {
+            finishIncomingTransfer();
+        }
+    }
+}
 
 const rtcConfiguration = {
     iceServers: [
@@ -1498,56 +1546,54 @@ function createPeerConnection() {
 ========================= */
 
 async function createOffer() {
-
-    console.log(
-        "Creating WebRTC offer..."
-    );
+    console.log("Creating WebRTC offer...");
 
     createPeerConnection();
 
+    // Create the data channel FIRST
+    dataChannel = peerConnection.createDataChannel("fileTransfer");
 
-    dataChannel =
-        peerConnection.createDataChannel(
-            "file-transfer"
-        );
+    // Handle transfer approval responses from receiver
+    dataChannel.onmessage = (event) => {
+        if (typeof event.data !== "string") return;
 
+        let message;
+
+        try {
+            message = JSON.parse(event.data);
+        } catch {
+            return;
+        }
+
+        if (message.type === "transfer-accept") {
+            console.log("Receiver accepted the transfer");
+            startTransfer();
+        }
+
+        if (message.type === "transfer-reject") {
+            console.log("Receiver declined the transfer");
+            showToast("Receiver declined the transfer");
+        }
+    };
 
     dataChannel.onopen = () => {
-
-        console.log(
-            "🔥 DATA CHANNEL OPEN"
-        );
-
-        showToast(
-            "Peer-to-peer connection established"
-        );
-
+        console.log("🔥 DATA CHANNEL OPEN");
+        showToast("Peer-to-peer connection established");
     };
-
 
     dataChannel.onclose = () => {
-
-        console.log(
-            "Data channel closed"
-        );
-
+        console.log("Data channel closed");
     };
 
+    // Create and send WebRTC offer
+    const offer = await peerConnection.createOffer();
 
-    const offer =
-        await peerConnection.createOffer();
-
-
-    await peerConnection.setLocalDescription(
-        offer
-    );
-
+    await peerConnection.setLocalDescription(offer);
 
     sendSignal({
         type: "offer",
         offer: peerConnection.localDescription
     });
-
 }
 
 
@@ -1564,41 +1610,25 @@ async function handleOffer(offer) {
     createPeerConnection();
 
 
-    peerConnection.ondatachannel =
-        event => {
+    
+peerConnection.ondatachannel = (event) => {
+    dataChannel = event.channel;
+    dataChannel.binaryType = "arraybuffer";
 
-            dataChannel =
-                event.channel;
+    console.log("📡 Data channel received");
 
-            console.log(
-                "Data channel received"
-            );
+    dataChannel.onopen = () => {
+        console.log("🔥 DATA CHANNEL OPEN");
+        showToast("Peer-to-peer connection established");
+    };
 
+    dataChannel.onmessage = handleIncomingData;
 
-            dataChannel.onopen = () => {
+    dataChannel.onclose = () => {
+        console.log("Data channel closed");
+    };
+};
 
-                console.log(
-                    "🔥 DATA CHANNEL OPEN"
-                );
-
-                showToast(
-                    "Peer-to-peer connection established"
-                );
-
-            };
-
-
-            dataChannel.onmessage =
-                event => {
-
-                    console.log(
-                        "Received data:",
-                        event.data
-                    );
-
-                };
-
-        };
 
 
     await peerConnection.setRemoteDescription(
