@@ -12,6 +12,8 @@ const state = {
 
     roomId: generateRoomId(),
 
+    roomActive: false,
+
     files: [],
 
     connected: false,
@@ -70,10 +72,44 @@ document
 document
     .getElementById("receiveCard")
     .addEventListener("click", () => {
-
         showPage("receivePage");
     });
 
+// Let dashboard action cards work with Enter and Space as well as clicks.
+["sendCard", "receiveCard"].forEach(id => {
+    const card = document.getElementById(id);
+    if (!card) return;
+    card.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            card.click();
+        }
+    });
+});
+
+
+/* =========================
+   DASHBOARD STATUS
+========================= */
+function updateDashboard() {
+    const connectionValue = document.getElementById("dashboardConnectionValue");
+    const connectionDetail = document.getElementById("dashboardConnectionDetail");
+    const connectionMeter = document.getElementById("dashboardConnectionMeter");
+    const roomValue = document.getElementById("dashboardRoomValue");
+    const roomDetail = document.getElementById("dashboardRoomDetail");
+    const selectedValue = document.getElementById("dashboardSelectedValue");
+    const selectedDetail = document.getElementById("dashboardSelectedDetail");
+    const systemStatusLabel = document.getElementById("systemStatusLabel");
+
+    if (connectionValue) connectionValue.textContent = state.connected ? "Connected" : "Not connected";
+    if (connectionDetail) connectionDetail.textContent = state.connected ? "Peer-to-peer link established" : "Waiting for a device to join";
+    if (connectionMeter) connectionMeter.style.width = state.connected ? "100%" : "12%";
+    if (roomValue) roomValue.textContent = state.roomActive ? state.roomId : "Not created";
+    if (roomDetail) roomDetail.textContent = state.roomActive ? "Share this ID with your receiver" : "Create a room to start sharing";
+    if (selectedValue) selectedValue.textContent = `${state.files.length} ${state.files.length === 1 ? "file" : "files"}`;
+    if (selectedDetail) selectedDetail.textContent = state.files.length ? `${formatBytes(state.files.reduce((total, file) => total + file.size, 0))} selected` : "Ready when you are";
+    if (systemStatusLabel) systemStatusLabel.textContent = state.connected ? "PEER CONNECTED" : (signalingSocket && signalingSocket.readyState === WebSocket.OPEN ? "SIGNALING ONLINE" : "CONNECTING");
+}
 
 /* =========================
    ROOM ID
@@ -102,6 +138,7 @@ function generateRoomId() {
 
 function initializeSender() {
     state.roomId = generateRoomId();
+    state.roomActive = false;
 
     document.getElementById("roomId").textContent =
         state.roomId;
@@ -119,6 +156,8 @@ function initializeSender() {
         }));
 
         console.log("Creating room:", state.roomId);
+        state.roomActive = true;
+        updateDashboard();
         showToast("Room created: " + state.roomId);
     } else {
         showToast("Signaling server is not connected");
@@ -319,11 +358,9 @@ dropZone.addEventListener(
 ========================= */
 
 function addFiles(newFiles) {
-
     state.files.push(...newFiles);
-
     renderFileList();
-
+    updateDashboard();
 }
 
 
@@ -408,10 +445,9 @@ function renderFileList() {
 ========================= */
 
 function removeFile(index) {
-
     state.files.splice(index, 1);
-
     renderFileList();
+    updateDashboard();
 }
 
 
@@ -896,8 +932,10 @@ function transferFinished() {
 function destroyRoom() {
 
     state.connected = false;
-
+    state.roomActive = false;
     state.files = [];
+    renderFileList();
+    updateDashboard();
 
     clearInterval(roomTimer);
 
@@ -1164,9 +1202,8 @@ function connectToSignalingServer() {
     signalingSocket = new WebSocket(SIGNALING_SERVER);
 
     signalingSocket.addEventListener("open", () => {
-
         console.log("✅ Connected to signaling server");
-
+        updateDashboard();
     });
 
     signalingSocket.addEventListener("message", async (event) => {
@@ -1281,11 +1318,8 @@ function connectToSignalingServer() {
     });
 
     signalingSocket.addEventListener("close", () => {
-
-        console.log(
-            "🔌 Disconnected from signaling server"
-        );
-
+        console.log("🔌 Disconnected from signaling server");
+        updateDashboard();
     });
 
 }
@@ -1489,6 +1523,7 @@ function createPeerConnection() {
                 );
 
                 state.connected = true;
+                updateDashboard();
 
                 const connectionState =
                     document.getElementById(
@@ -1520,6 +1555,11 @@ function createPeerConnection() {
 
             }
 
+
+            if (peerConnection.connectionState === "disconnected" || peerConnection.connectionState === "closed") {
+                state.connected = false;
+                updateDashboard();
+            }
 
             if (
                 peerConnection.connectionState ===
@@ -1653,3 +1693,6 @@ peerConnection.ondatachannel = (event) => {
     });
 
 }
+
+// Populate the dashboard after all functions and connection state exist.
+window.addEventListener("DOMContentLoaded", updateDashboard);

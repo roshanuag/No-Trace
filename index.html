@@ -30,123 +30,90 @@
             </div>
         </div>
 
-        <div class="nav-status">
+        <div class="nav-status" id="systemStatus">
             <span class="status-dot"></span>
-            SYSTEM ONLINE
+            <span id="systemStatusLabel">CONNECTING</span>
         </div>
 
     </nav>
 
 
-    <!-- HOME -->
-    <main id="homePage" class="page active">
-
-        <section class="hero">
-
-            <div class="hero-text">
-
-                <div class="eyebrow">
-                    <span>⚡</span>
-                    PEER-TO-PEER FILE TRANSFER
+    <!-- DASHBOARD HOME -->
+    <main id="homePage" class="page active dashboard-page">
+        <div class="dashboard-shell">
+            <section class="dashboard-welcome">
+                <div class="dashboard-welcome-copy">
+                    <div class="eyebrow"><span>✦</span> PRIVATE FILE TRANSFER / WORKSPACE</div>
+                    <h2>Your files.<br><span>Your rules.</span></h2>
+                    <p>Move files between your devices with a peer-to-peer connection. No account, no cloud library, no unnecessary steps.</p>
+                    <div class="dashboard-trust-row">
+                        <span><i class="trust-dot"></i> Peer-to-peer transport</span>
+                        <span><i class="trust-dot trust-dot-blue"></i> Temporary rooms</span>
+                        <span><i class="trust-dot trust-dot-purple"></i> Receiver approval</span>
+                    </div>
                 </div>
+                <div class="dashboard-orbit" aria-hidden="true">
+                    <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+                    <div class="orbit-core"><span class="orbit-mark">↯</span><small>NO-TRACE</small></div>
+                    <span class="orbit-node node-one">↗</span><span class="orbit-node node-two">⌁</span><span class="orbit-node node-three">⇄</span>
+                </div>
+            </section>
 
-                <h2>
-                    Send files.
-                    <span>Leave no trace.</span>
-                </h2>
+            <section class="dashboard-section">
+                <div class="dashboard-section-heading">
+                    <div><span class="section-kicker">WORKSPACE</span><h3>Transfer dashboard</h3></div>
+                    <span class="dashboard-live-pill"><i></i> Live status</span>
+                </div>
+                <div class="dashboard-stats">
+                    <article class="dashboard-stat stat-connection">
+                        <div class="stat-topline"><span class="stat-icon">⌁</span><span class="stat-label">CONNECTION</span></div>
+                        <strong id="dashboardConnectionValue">Not connected</strong>
+                        <p id="dashboardConnectionDetail">Waiting for a device to join</p>
+                        <div class="stat-meter"><span id="dashboardConnectionMeter"></span></div>
+                    </article>
+                    <article class="dashboard-stat stat-room">
+                        <div class="stat-topline"><span class="stat-icon">▦</span><span class="stat-label">ACTIVE ROOM</span></div>
+                        <strong id="dashboardRoomValue">Not created</strong>
+                        <p id="dashboardRoomDetail">Create a room to start sharing</p>
+                        <div class="stat-footnote"><span class="tiny-pulse"></span> Temporary by design</div>
+                    </article>
+                    <article class="dashboard-stat stat-files">
+                        <div class="stat-topline"><span class="stat-icon">▤</span><span class="stat-label">FILES SELECTED</span></div>
+                        <strong id="dashboardSelectedValue">0 files</strong>
+                        <p id="dashboardSelectedDetail">Ready when you are</p>
+                        <div class="stat-footnote"><span class="stat-file-dot"></span> Selected on this device</div>
+                    </article>
+                </div>
+            </section>
 
-                <p>
-                    Transfer files directly between devices without
-                    cloud storage, accounts or unnecessary uploads.
-                </p>
-
-                <div class="feature-row">
-
-                    <div class="feature">
-                        <span>🔒</span>
-                        <div>
-                            <strong>Encrypted</strong>
-                            <small>Private connection</small>
+            <section class="dashboard-lower-grid">
+                <div class="dashboard-panel quick-actions-panel">
+                    <div class="dashboard-section-heading compact-heading"><div><span class="section-kicker">GET STARTED</span><h3>What do you want to do?</h3></div></div>
+                    <div class="dashboard-actions">
+                        <div class="action-card dashboard-action-card" id="sendCard" role="button" tabindex="0" aria-label="Start sending files">
+                            <div class="action-icon send-icon">↑</div>
+                            <div class="dashboard-action-copy"><h3>Send files</h3><p>Create a temporary room and share directly with another device.</p><span class="action-link">Start sending <b>↗</b></span></div>
+                            <span class="action-chevron">↗</span>
+                        </div>
+                        <div class="action-card dashboard-action-card" id="receiveCard" role="button" tabindex="0" aria-label="Receive files">
+                            <div class="action-icon receive-icon">↓</div>
+                            <div class="dashboard-action-copy"><h3>Receive files</h3><p>Join a room with an 8-character ID to receive a transfer.</p><span class="action-link action-link-purple">Receive files <b>↗</b></span></div>
+                            <span class="action-chevron">↗</span>
                         </div>
                     </div>
-
-                    <div class="feature">
-                        <span>⚡</span>
-                        <div>
-                            <strong>Direct</strong>
-                            <small>Peer-to-peer transfer</small>
-                        </div>
-                    </div>
-
-                    <div class="feature">
-                        <span>🗑</span>
-                        <div>
-                            <strong>Temporary</strong>
-                            <small>Destroy when done</small>
-                        </div>
-                    </div>
-
                 </div>
-
-            </div>
-
-
-            <!-- HOME ACTIONS -->
-            <div class="action-area">
-
-                <div class="action-card" id="sendCard">
-
-                    <div class="action-icon send-icon">
-                        ↑
-                    </div>
-
-                    <div>
-                        <h3>Send File</h3>
-
-                        <p>
-                            Create a temporary room and
-                            send files directly to another device.
-                        </p>
-                    </div>
-
-                    <button class="action-button">
-                        Start Sending →
-                    </button>
-
-                </div>
-
-
-                <div class="action-card" id="receiveCard">
-
-                    <div class="action-icon receive-icon">
-                        ↓
-                    </div>
-
-                    <div>
-                        <h3>Receive File</h3>
-
-                        <p>
-                            Connect to another device using
-                            a room ID or QR code.
-                        </p>
-                    </div>
-
-                    <button class="action-button">
-                        Receive Files →
-                    </button>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <div class="demo-badge">
-            <span>●</span>
-            DEMO MODE — WebRTC transport ready to integrate
+                <aside class="dashboard-panel privacy-panel">
+                    <div class="privacy-panel-top"><span class="privacy-shield">◇</span><span class="privacy-label">BUILT FOR DIRECT TRANSFERS</span></div>
+                    <h3>Your files stay out of a cloud library.</h3>
+                    <p>No-Trace uses WebRTC data channels to send file data between connected browsers when a direct route is available. Network relays may be used if configured.</p>
+                    <div class="privacy-divider"></div>
+                    <div class="privacy-row"><span class="privacy-check">✓</span><span><strong>Receiver approval</strong><small>Review an incoming request before it starts.</small></span></div>
+                    <div class="privacy-row"><span class="privacy-check">✓</span><span><strong>Temporary room IDs</strong><small>Designed for short-lived sharing sessions.</small></span></div>
+                    <div class="privacy-note">Privacy note: downloads and browser/network metadata may still remain on your devices or network.</div>
+                </aside>
+            </section>
+            <footer class="dashboard-footer"><span>NO-TRACE <b>•</b> PRIVATE FILE TRANSFER</span><span>Built for direct sharing, not cloud storage.</span></footer>
         </div>
-
     </main>
 
 
