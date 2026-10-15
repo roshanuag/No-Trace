@@ -1191,7 +1191,7 @@ async function createPeerConnection() {
 // No-Trace WebSocket Signaling
 // ==========================================
 
-const SIGNALING_SERVER = "ws://localhost:3000";
+const SIGNALING_SERVER = "ws://10.193.216.196:3000";
 
 let signalingSocket = null;
 
